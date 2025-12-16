@@ -53,7 +53,6 @@ ansible-galaxy collection install netbox.netbox
 ```bash
 pip install proxmoxer
 pip install pynetbox
-pip install requests
 ```
 
 ## 🚀 Installation
@@ -78,10 +77,11 @@ cd <nom-du-projet>
 
 Assurez-vous que vos VMs sont documentées dans Netbox avec :
 - Nom de la VM
-- Adresse IP
-- CPU, RAM, Stockage
+- Adresse IP (Non Implémenté)
+- CPU, RAM (Non Implémenté) 
+- Stockage en MB
 - Tags pour l'identification
-- Site/Cluster de destination
+- Site/Cluster de destination (Non Implémenté)
 
 ### 3. Configuration de Proxmox
 
@@ -98,7 +98,6 @@ pveum user token add ansible@pve ansible-token --privsep 0
 #### Ajouter le projet dans Semaphore
 
 1. **Key Store** : Ajouter les credentials
-   - Clé SSH pour Ansible
    - Token Netbox
    - Credentials Proxmox
 
@@ -121,63 +120,9 @@ pveum user token add ansible@pve ansible-token --privsep 0
 ```
 .
 ├── README.md
-├── ansible.cfg
-├── inventory/
-│   ├── hosts.yml
-│   └── group_vars/
-│       └── all.yml
 ├── playbooks/
-│   ├── deploy_vms.yml
-│   ├── gather_netbox_data.yml
-│   └── create_proxmox_vm.yml
-├── roles/
-│   ├── netbox_inventory/
-│   │   ├── tasks/
-│   │   ├── defaults/
-│   │   └── templates/
-│   └── proxmox_vm/
-│       ├── tasks/
-│       ├── defaults/
-│       └── templates/
-├── vars/
-│   └── vault.yml
+│   ├── deploy_lxc.yml
 └── requirements.yml
-```
-
-## ⚙️ Configuration
-
-### ansible.cfg
-
-```ini
-[defaults]
-inventory = ./inventory/hosts.yml
-roles_path = ./roles
-host_key_checking = False
-retry_files_enabled = False
-
-[inventory]
-enable_plugins = netbox
-```
-
-### Variables principales
-
-Créer le fichier `vars/vault.yml` (à chiffrer avec ansible-vault) :
-
-```yaml
----
-netbox_url: "https://netbox.example.com"
-netbox_token: "votre-token-netbox"
-
-proxmox_api_host: "proxmox.example.com"
-proxmox_api_user: "ansible@pve"
-proxmox_api_token_id: "ansible-token"
-proxmox_api_token_secret: "votre-secret"
-```
-
-Chiffrer le fichier :
-
-```bash
-ansible-vault encrypt vars/vault.yml
 ```
 
 ## 🎮 Utilisation
@@ -187,17 +132,7 @@ ansible-vault encrypt vars/vault.yml
 #### Déployer une VM
 
 ```bash
-ansible-playbook playbooks/deploy_vms.yml \
-  --extra-vars "vm_name=test-vm-01" \
-  --ask-vault-pass
-```
-
-#### Déployer plusieurs VMs
-
-```bash
-ansible-playbook playbooks/deploy_vms.yml \
-  --extra-vars "netbox_tag=production" \
-  --ask-vault-pass
+ansible-playbook playbooks/deploy_lxc.yml
 ```
 
 ### Via Semaphore
@@ -205,47 +140,8 @@ ansible-playbook playbooks/deploy_vms.yml \
 1. Se connecter à l'interface Semaphore
 2. Sélectionner le projet
 3. Choisir le template de tâche
-4. Renseigner les paramètres :
-   - Nom de la VM ou tag Netbox
-   - Node Proxmox cible
-   - Autres paramètres spécifiques
 5. Lancer l'exécution
 6. Suivre les logs en temps réel
-
-## 📝 Exemple de Playbook
-
-```yaml
----
-- name: Déployer des VMs depuis Netbox vers Proxmox
-  hosts: localhost
-  gather_facts: false
-  vars_files:
-    - ../vars/vault.yml
-  
-  tasks:
-    - name: Récupérer les informations depuis Netbox
-      netbox.netbox.nb_lookup:
-        api_endpoint: "{{ netbox_url }}"
-        token: "{{ netbox_token }}"
-        plugin: virtualization.virtual_machines
-        api_filter: "tag={{ netbox_tag }}"
-      register: netbox_vms
-
-    - name: Créer les VMs sur Proxmox
-      community.general.proxmox_kvm:
-        api_host: "{{ proxmox_api_host }}"
-        api_user: "{{ proxmox_api_user }}"
-        api_token_id: "{{ proxmox_api_token_id }}"
-        api_token_secret: "{{ proxmox_api_token_secret }}"
-        name: "{{ item.value.name }}"
-        node: "{{ item.value.cluster.name }}"
-        memory: "{{ item.value.memory }}"
-        cores: "{{ item.value.vcpus }}"
-        net:
-          net0: "virtio,bridge=vmbr0"
-        state: present
-      loop: "{{ netbox_vms.value | dict2items }}"
-```
 
 ## 🔒 Sécurité
 
@@ -298,7 +194,7 @@ curl -k https://proxmox.example.com:8006/api2/json/access/ticket \
 
 ```bash
 # Activer le verbose mode
-ansible-playbook playbooks/deploy_vms.yml -vvv
+ansible-playbook playbooks/deploy_lxc.yml -vvv
 ```
 
 ### Logs Semaphore
@@ -348,12 +244,6 @@ Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 - [Documentation Proxmox](https://pve.proxmox.com/pve-docs/)
 - [Collection Ansible Netbox](https://docs.ansible.com/ansible/latest/collections/netbox/netbox/)
 - [Module Proxmox KVM](https://docs.ansible.com/ansible/latest/collections/community/general/proxmox_kvm_module.html)
-
-## 📞 Support
-
-Pour toute question ou problème :
-- Ouvrir une issue sur GitHub
-- Contacter l'équipe à : support@example.com
 
 ---
 
