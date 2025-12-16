@@ -6,12 +6,14 @@
   tasks:
     - name: Create new container with minimal options
       community.proxmox.proxmox:
-        vmid: 200
         node: pve
         api_user: root@pam
         api_token_id: 'One'
         api_token_secret: '9a73add3-9ad9-4b46-98d3-2a71dbc517de'
         api_host: 192.168.52.132
         password: 123456
-        hostname: Alpine-Test
+        hostname: Alpine-Test2
         ostemplate: 'local:vztmpl/alpine-3.20-default_20240908_amd64.tar.xz'
+        disk_volume:
+          storage: local-lvm
+          size: 20
