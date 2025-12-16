@@ -47,6 +47,10 @@ ansible-galaxy collection install community.general
 ansible-galaxy collection install community.proxmox
 ansible-galaxy collection install netbox.netbox
 ```
+or
+```bash
+ansible-galaxy collection install -r requirements.yml
+```
 
 ### Modules Python requis
 
